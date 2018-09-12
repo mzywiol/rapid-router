@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # Code for Life
 #
-# Copyright (C) 2015, Ocado Innovation Limited
+# Copyright (C) 2016, Ocado Innovation Limited
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
@@ -36,6 +36,7 @@
 # identified as the original program.
 from django import forms
 from django.utils.safestring import mark_safe
+from django.utils.translation import ugettext
 
 class DropDownMenuSelectMultiple(forms.SelectMultiple):
     """
@@ -53,7 +54,9 @@ class DropDownMenuSelectMultiple(forms.SelectMultiple):
         html = super(DropDownMenuSelectMultiple, self).render(name, value, attrs, choices)
         html += """
             <script>$("#id_""" + name + """").pqSelect({
-            multiplePlaceholder: 'Select """ + name + """',
+            displayText: '""" + (ugettext('%(selected)s of %(total)s selected') % {'selected': '{0}', 'total': '{1}'}) + """',
+            multiplePlaceholder: '""" + self.attrs['multiplePlaceholder'] + """',
+            selectallText: '""" + ugettext('Select All') + """',
             checkbox: true
             });</script>"""
         return mark_safe(html)

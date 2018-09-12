@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # Code for Life
 #
-# Copyright (C) 2015, Ocado Innovation Limited
+# Copyright (C) 2016, Ocado Innovation Limited
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
@@ -38,7 +38,15 @@
 import os
 
 DEBUG = True
-TEMPLATE_DEBUG = DEBUG
+
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'OPTIONS': {
+            'debug': DEBUG,
+        },
+    },
+]
 
 DATABASES = {
     'default': {
@@ -47,11 +55,14 @@ DATABASES = {
     }
 }
 
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
 USE_I18N = True
 USE_L10N = True
 
 TIME_ZONE = 'Europe/London'
 LANGUAGE_CODE = 'en-gb'
+LANGUAGES = (('en-gb', 'English'),)
 STATIC_ROOT = os.path.join(os.path.dirname(__file__), 'static')
 STATIC_URL = '/static/'
 SECRET_KEY = 'not-a-secret'

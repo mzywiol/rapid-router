@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # Code for Life
 #
-# Copyright (C) 2015, Ocado Innovation Limited
+# Copyright (C) 2016, Ocado Innovation Limited
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
@@ -36,6 +36,8 @@
 # identified as the original program.
 from django.contrib.auth.models import User
 from django.db import models
+from django.utils.translation import ugettext
+
 
 from portal.models import UserProfile, Student
 
@@ -44,38 +46,16 @@ def theme_choices():
     return [(theme.name, theme.name) for theme in get_all_themes()]
 
 
+def character_choices():
+    from game.character import get_all_character
+    return [(character.name, character.name) for character in get_all_character()]
+
+
 class Block(models.Model):
     type = models.CharField(max_length=200)
 
     def __unicode__(self):
         return self.type
-
-
-class Theme(models.Model):
-    name = models.CharField(max_length=100)
-    background = models.CharField(max_length=7, default='#eff8ff')
-    border = models.CharField(max_length=7, default='#bce369')
-    selected = models.CharField(max_length=7, default='#70961f')
-
-    def __unicode__(self):
-        return self.name
-
-
-class Decor(models.Model):
-    name = models.CharField(max_length=100)
-    url = models.CharField(max_length=500)
-    width = models.IntegerField()
-    height = models.IntegerField()
-    theme = models.ForeignKey(Theme, related_name='decor')
-    z_index = models.IntegerField()
-
-
-class Character(models.Model):
-    name = models.CharField(max_length=100)
-    en_face = models.CharField(max_length=500)
-    top_down = models.CharField(max_length=500)
-    width = models.IntegerField(default=40)
-    height = models.IntegerField(default=20)
 
 
 class Episode(models.Model):
@@ -107,7 +87,7 @@ class Episode(models.Model):
         return sorted(self.level_set.all(), key=lambda level: int(level.name))
 
     def __unicode__(self):
-        return 'Episode: ' + self.name
+        return ugettext('Episode: %(episode_name)s') % {'episode_name': self.name}
 
 
 class LevelManager(models.Manager):
@@ -143,29 +123,39 @@ class Level(models.Model):
     blocklyEnabled = models.BooleanField(default=True)
     pythonEnabled = models.BooleanField(default=True)
     pythonViewEnabled = models.BooleanField(default=False)
-    theme_old = models.ForeignKey(Theme, blank=True, null=True, default=None, db_column='theme_id')
     theme_name = models.CharField(max_length=10, choices=theme_choices(), blank=True, null=True, default=None)
-    character = models.ForeignKey(Character, default=1)
+    character_name = models.CharField(max_length=20, choices=character_choices(), blank=True, null=True, default=None)
     anonymous = models.BooleanField(default=False)
     objects = LevelManager()
 
     def __unicode__(self):
-        return 'Level ' + str(self.name)
+        return ugettext('Level %(level_name)s') % {'level_name': self.name}
 
     @property
     def theme(self):
-        if not self.theme_name:
-            if self.theme_old:
-                self.theme_name = self.theme_old.name
-            else:
-                return None
         from game.theme import get_theme
-        return get_theme(self.theme_name)
+        try:
+            return get_theme(self.theme_name)
+        except KeyError:
+            return None
 
     @theme.setter
     def theme(self, val):
-        self.theme_old = Theme.objects.get(pk=val.pk)
-        self.theme_name = self.theme_old.name
+        from game.theme import get_theme_by_pk
+        self.theme_name = get_theme_by_pk(val.pk).name
+
+    @property
+    def character(self):
+        from game.character import get_character
+        try:
+            return get_character(self.character_name)
+        except KeyError:
+            return None
+
+    @character.setter
+    def character(self, val):
+        from game.character import get_character_by_pk
+        self.character_name = get_character_by_pk(val.pk).name
 
 
 class LevelBlock(models.Model):

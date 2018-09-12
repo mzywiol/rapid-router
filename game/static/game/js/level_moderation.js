@@ -1,7 +1,7 @@
 /*
 Code for Life
 
-Copyright (C) 2015, Ocado Innovation Limited
+Copyright (C) 2016, Ocado Innovation Limited
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as
@@ -36,6 +36,8 @@ program; modified versions of the program must be marked as such and not
 identified as the original program.
 */
 var levelID;
+var classID;
+var students;
 
 function csrfSafeMethod(method) {
     // these HTTP methods do not require CSRF protection
@@ -47,9 +49,9 @@ var saving = new ocargo.Saving();
 var CONFIRMATION_DATA = {
     'deleteLevel': {
         options: {
-            title: 'Delete level',
+            title: gettext('Delete level'),
         },
-        html: "<p>This student's level will be permanently deleted. Are you sure?</p>",
+        html: '<p>' + gettext("This student's level will be permanently deleted. Are you sure?") + '</p>',
         confirm: function() {
             saving.deleteLevel(levelID,
                 function () {
@@ -70,4 +72,38 @@ $(document).ready(function() {
 	$('.play').click(function() {
 		window.location.href = Urls.play_custom_level(this.getAttribute('value'));
 	});
+
+    $("#table").tablesorter();
+
+    $('#id_classes').change(function() {
+        classID = $(this).val();
+        $.ajax({
+            url: Urls.students_for_level_moderation(classID),
+            type: 'GET',
+            dataType: 'json',
+            success: function(studentData) {
+                $('#id_students').empty();
+
+                var addStudentOption = function(value, text) {
+                    var option = $('<option>');
+                    option.attr({
+                        'value': value
+                    });
+                    option.text(text);
+                    $('#id_students').append(option);
+                };
+
+                addStudentOption("", "---------");
+
+                for (var student in studentData) {
+                    addStudentOption(student, studentData[student])
+                }
+            }
+        });
+        return false;
+    });
+
+    if (students) {
+        $('#id_classes').change();
+    }
 });

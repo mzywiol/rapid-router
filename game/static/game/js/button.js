@@ -1,7 +1,7 @@
 /*
 Code for Life
 
-Copyright (C) 2015, Ocado Innovation Limited
+Copyright (C) 2016, Ocado Innovation Limited
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as
@@ -53,5 +53,5 @@ ocargo.button.redirectButtonHtml = function(id, location, label){
 
 // Returns the html code for a button which shows the try again message and closes the popup
 ocargo.button.tryAgainButtonHtml = function(){
-    return ocargo.button.dismissButtonHtml('try_again_button', ocargo.messages.tryagainLabel)
+    return ocargo.button.dismissButtonHtml('try_again_button', gettext('Try again'));
 };

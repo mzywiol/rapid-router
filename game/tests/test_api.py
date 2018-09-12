@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # Code for Life
 #
-# Copyright (C) 2015, Ocado Limited
+# Copyright (C) 2016, Ocado Limited
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
@@ -43,6 +43,8 @@ from hamcrest import *
 from hamcrest.core.base_matcher import BaseMatcher
 
 from game.decor import get_all_decor
+from game.theme import get_all_themes
+from game.character import get_all_character
 
 
 class APITests(APITestCase):
@@ -78,6 +80,44 @@ class APITests(APITestCase):
         response = self.client.get(url)
         assert_that(response, has_status_code(status.HTTP_200_OK))
         assert_that(response.data, has_length(0))
+
+    def test_list_themes(self):
+        url = reverse('theme-list')
+        response = self.client.get(url)
+        assert_that(response, has_status_code(status.HTTP_200_OK))
+        assert_that(response.data, has_length(len(get_all_themes())))
+
+    def test_known_theme_detail(self):
+        theme_id = 1
+        url = reverse('theme-detail', kwargs={'pk': theme_id})
+        response = self.client.get(url)
+        assert_that(response, has_status_code(status.HTTP_200_OK))
+        assert_that(response.data['id'], equal_to(theme_id))
+
+    def test_unknown_theme_detail(self):
+        theme_id = 0
+        url = reverse('theme-detail', kwargs={'pk': theme_id})
+        response = self.client.get(url)
+        assert_that(response, has_status_code(status.HTTP_404_NOT_FOUND))
+
+    def test_list_characters(self):
+        url = reverse('character-list')
+        response = self.client.get(url)
+        assert_that(response, has_status_code(status.HTTP_200_OK))
+        assert_that(response.data, has_length(len(get_all_character())))
+
+    def test_known_character_detail(self):
+        character_id = 1
+        url = reverse('character-detail', kwargs={'pk': character_id})
+        response = self.client.get(url)
+        assert_that(response, has_status_code(status.HTTP_200_OK))
+        assert_that(response.data['id'], equal_to(character_id))
+
+    def test_unknown_character_detail(self):
+        character_id = 0
+        url = reverse('character-detail', kwargs={'pk': character_id})
+        response = self.client.get(url)
+        assert_that(response, has_status_code(status.HTTP_404_NOT_FOUND))
 
 
 def has_status_code(status_code):

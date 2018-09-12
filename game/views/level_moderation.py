@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # Code for Life
 #
-# Copyright (C) 2015, Ocado Innovation Limited
+# Copyright (C) 2016, Ocado Innovation Limited
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
@@ -42,6 +42,7 @@ import json
 from django.http import Http404, HttpResponse
 from django.shortcuts import render, get_object_or_404
 from django.template import RequestContext
+from django.utils.translation import ugettext
 from helper import renderError
 from game.forms import LevelModerationForm
 from game.models import Level
@@ -117,7 +118,8 @@ def level_moderation(request):
             else:
                 owners = [student.user for student in students]
 
-            table_headers = ['Student', 'Level name', 'Shared with', 'Play', 'Delete']
+            table_headers = [ugettext('Student'), ugettext('Level name'), ugettext('Shared with'), ugettext('Play'),
+                             ugettext('Delete')]
             level_data = []
 
             for owner in owners:

@@ -1,7 +1,7 @@
 /*
 Code for Life
 
-Copyright (C) 2015, Ocado Innovation Limited
+Copyright (C) 2016, Ocado Innovation Limited
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as
@@ -77,10 +77,15 @@ ocargo.BlocklyControl.prototype.incorrectBlockColour = null;
 
 ocargo.BlocklyControl.prototype.prepare = function(blocks) {
     try {
-        return {success:true,
-                program: blocks? ocargo.blocklyCompiler.mobileCompile(blocks) : ocargo.blocklyCompiler.compile()};
+        return {
+            success:true,
+            program: blocks? ocargo.blocklyCompiler.mobileCompile(blocks) : ocargo.blocklyCompiler.compile()
+        };
     } catch (error) {
-        return {success:false, error: ocargo.messages.compilationError + "<br><br>" + error};
+        return {
+            success:false,
+            error: gettext('Your program doesn\'t look quite right...') + "<br><br>" + gettext(error)
+        };
     }
 };
 
@@ -146,8 +151,12 @@ ocargo.BlocklyControl.prototype.deserialize = function(text) {
         var legal = this.removeIllegalBlocks();
 
         if (!legal) {
-            ocargo.Drawing.startPopup("Loading workspace", "",
-                ocargo.messages.illegalBlocks, true);
+            ocargo.Drawing.startPopup(
+                gettext('Loading workspace'),
+                "",
+                gettext('Sorry, this workspace has blocks in it that aren\'t allowed in this level!'),
+                true
+            );
             Blockly.mainWorkspace.clear();
             Blockly.Xml.domToWorkspace(Blockly.mainWorkspace, oldXml);
         }

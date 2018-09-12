@@ -1,7 +1,7 @@
 /*
 Code for Life
 
-Copyright (C) 2015, Ocado Innovation Limited
+Copyright (C) 2016, Ocado Innovation Limited
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as
@@ -102,4 +102,95 @@ table tbody td {
 .ui-progressbar .ui-progressbar-value{
 	margin: 0px;
 	border: 0px;
+}
+
+#scoreboardForm {
+	text-align: center;
+}
+
+#scoreboardForm .select-list {
+	text-align: left;
+	overflow: scroll;
+	height: 300px;
+}
+
+#scoreboardForm .select-list label {
+	float: none;
+}
+
+#scoreboardForm .select-list ul {
+	list-style-type: none;
+}
+
+#scoreboardForm .select-list li {
+	display: flex;
+}
+
+#scoreboardForm .select-list li label {
+	margin: 0.1rem 0;
+	vertical-align: middle;
+	width: 100%;
+	text-align: left;
+	font-weight: normal;
+	text-decoration: none;
+	font-style: normal;
+	color: #000;
+}
+
+#scoreboardForm .all-class {
+	background-color: #ccc;
+	padding: 1rem;
+	margin: 1rem;
+}
+
+#scoreboardForm .all-class.checked {
+	background-color: #6c696c;
+	color: #fff;
+}
+
+#scoreboardForm .class {
+	background-color: #fff;
+	padding: 1rem;
+	margin: 0 1rem;
+	border-bottom: 1px solid #aaa;
+}
+
+#scoreboardForm .class.checked {
+	background-color: #ccc;
+}
+
+#scoreboardForm .all-level {
+	background-color: #ccc;
+	padding: 1rem;
+	margin: 1rem;
+}
+
+#scoreboardForm .all-level.checked {
+	background-color: #6c696c;
+	color: #fff;
+}
+
+#scoreboardForm .episode {
+	background-color: #d2e6ed;
+	padding: 1rem;
+	margin: 0.5rem 1rem;
+}
+
+#scoreboardForm .episode.checked {
+	background-color: #0c52a3;
+}
+
+#scoreboardForm .level {
+	background-color: #fff;
+	padding: 1rem;
+	margin: 0 1rem 0 5rem;
+	border-bottom: 1px solid #aaa;
+}
+
+#scoreboardForm .level.checked {
+	background-color: #ccc;
+}
+
+#scoreboardForm .expander {
+	color: #000;
 }

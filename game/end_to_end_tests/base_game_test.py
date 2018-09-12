@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # Code for Life
 #
-# Copyright (C) 2015, Ocado Innovation Limited
+# Copyright (C) 2016, Ocado Innovation Limited
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
@@ -35,17 +35,27 @@
 # program; modified versions of the program must be marked as such and not
 # identified as the original program.
 import os
+import socket
+import time
+from unittest import skipUnless
 
 from django.core.urlresolvers import reverse
 from django_selenium_clean import selenium, SeleniumTestCase
-from unittest import skipUnless
 
+from . import custom_handler
 from portal.models import UserProfile
 from game.models import Workspace
-from portal.tests.pageObjects.portal.game_page import GamePage
+from game.views.level import load_workspace_solution
+from .game_page import GamePage
 from portal.tests.pageObjects.portal.home_page import HomePage
 from portal.tests.utils.organisation import create_organisation_directly
 from portal.tests.utils.teacher import signup_teacher_directly
+from portal.tests.utils.classes import create_class_directly
+from portal.tests.utils.student import create_school_student_directly
+
+
+custom_handler.monkey_patch()
+
 
 @skipUnless(selenium, "Selenium is unconfigured")
 class BaseGameTest(SeleniumTestCase):
@@ -55,7 +65,18 @@ class BaseGameTest(SeleniumTestCase):
     user_profile = None
 
     def _go_to_path(self, path):
-        selenium.get(self.live_server_url + path)
+        socket.setdefaulttimeout(20)
+        attempts = 0
+        while True:
+            try:
+                selenium.get(self.live_server_url + path)
+            except socket.timeout:
+                attempts += 1
+                if attempts > 2:
+                    raise
+                time.sleep(10)
+            else:
+                break
 
     def go_to_homepage(self):
         path = reverse('home')
@@ -65,61 +86,39 @@ class BaseGameTest(SeleniumTestCase):
     def go_to_level(self, level_name):
         path = reverse('play_default_level', kwargs={'levelName': str(level_name)})
         self._go_to_path(path)
+        selenium.execute_script('ocargo.animation.FAST_ANIMATION_DURATION = 1;')
 
         return GamePage(selenium)
 
     def go_to_custom_level(self, level):
         path = reverse('play_custom_level', kwargs={'levelId': str(level.id)})
         self._go_to_path(path)
+        selenium.execute_script('ocargo.animation.FAST_ANIMATION_DURATION = 1;')
 
         return GamePage(selenium)
 
     def go_to_episode(self, episodeId):
         path = reverse('start_episode', kwargs={'episodeId': str(episodeId)})
         self._go_to_path(path)
+        selenium.execute_script('ocargo.animation.FAST_ANIMATION_DURATION = 1;')
 
         return GamePage(selenium)
 
-    def score_element_id(self, route_score, algorithm_score):
-        if route_score:
-            return "routeScore"
-        elif algorithm_score:
-            return "algorithmScore"
-        else:
-            raise Exception
+    def deliver_everywhere_test(self, level):
+        self.login_once()
 
-    def run_episode_test(self, episode_id, level, suffix=None, route_score="10/10", algorithm_score="10/10", page=None):
-        def go_to_episode():
-            return self.go_to_episode(episode_id)
+        return self.go_to_level(level) \
+            .solution_button() \
+            .run_program()
 
-        self._run_level_test(go_to_episode, level, suffix, route_score, algorithm_score, page)
-
-    def run_level_test(self, level, suffix=None, route_score="10/10", algorithm_score="10/10", page=None):
-        def go_to_level():
-            return self.go_to_level(level)
-
-        self._run_level_test(go_to_level, level, suffix, route_score, algorithm_score, page)
-
-    def _run_level_test(self, go_to_level_function, level, suffix, route_score, algorithm_score, page):
-        level_with_suffix = str(level)
-        if suffix:
-            level_with_suffix += "-%d" % suffix
-
+    def try_again_if_not_full_score_test(self, level, workspace_file):
         user_profile = self.login_once()
-        workspace_id = self.use_workspace_of_level(level_with_suffix, user_profile)
-        score_element_id = self.score_element_id(route_score, algorithm_score)
 
-        if not page:
-            page = go_to_level_function()
+        workspace_id = self.use_workspace(workspace_file, user_profile)
 
-        page.load_solution(workspace_id) \
-            .run_program(score_element_id)
-
-        if route_score:
-            page.assert_route_score(route_score)
-
-        if algorithm_score:
-            page.assert_algorithm_score(algorithm_score)
+        return self.go_to_level(level) \
+            .load_solution(workspace_id) \
+            .run_retry_program()
 
     def run_crashing_test(self, level, workspace_file):
         user_profile = self.login_once()
@@ -130,6 +129,26 @@ class BaseGameTest(SeleniumTestCase):
             .load_solution(workspace_id) \
             .run_crashing_program()
 
+    def run_python_commands_test(self, level):
+        return self.go_to_level(level) \
+            .check_python_commands()
+
+    def run_clear_console_test(self, level):
+        return self.go_to_level(level) \
+            .write_to_then_clear_console()
+
+    def run_console_parse_error_test(self, level):
+        return self.go_to_level(level) \
+            .run_parse_error_program()
+
+    def run_console_attribute_error_test(self, level):
+        return self.go_to_level(level) \
+            .run_attribute_error_program()
+
+    def run_console_print_test(self, level):
+        return self.go_to_level(level) \
+            .run_print_program()
+
     def running_out_of_instructions_test(self, level, workspace_file):
         user_profile = self.login_once()
 
@@ -137,11 +156,43 @@ class BaseGameTest(SeleniumTestCase):
 
         return self.go_to_level(level) \
             .load_solution(workspace_id) \
-            .run_program_that_runs_out_of_instructions()
+            .run_out_of_instructions_program()
 
-    def use_workspace_of_level(self, level, user_profile):
-        workspace_filename = self.solution_filename_for_level(level)
-        return self.use_workspace(workspace_filename, user_profile)
+    def running_out_of_fuel_test(self, level, workspace_file):
+        user_profile = self.login_once()
+
+        workspace_id = self.use_workspace(workspace_file, user_profile)
+
+        return self.go_to_level(level) \
+            .load_solution(workspace_id) \
+            .run_out_of_fuel_program()
+
+    def running_a_red_light_test(self, level, workspace_file):
+        user_profile = self.login_once()
+
+        workspace_id = self.use_workspace(workspace_file, user_profile)
+
+        return self.go_to_level(level) \
+            .load_solution(workspace_id) \
+            .run_a_red_light_program()
+
+    def not_delivered_everywhere_test(self, level, workspace_file):
+        user_profile = self.login_once()
+
+        workspace_id = self.use_workspace(workspace_file, user_profile)
+
+        return self.go_to_level(level) \
+            .load_solution(workspace_id) \
+            .run_not_delivered_everywhere_program()
+
+    def undefined_procedure_test(self, level, workspace_file):
+        user_profile = self.login_once()
+
+        workspace_id = self.use_workspace(workspace_file, user_profile)
+
+        return self.go_to_level(level) \
+            .load_solution(workspace_id) \
+            .run_undefined_procedure_program()
 
     def use_workspace(self, workspace_file, user_profile):
         solution = self.read_solution(workspace_file)
@@ -152,7 +203,9 @@ class BaseGameTest(SeleniumTestCase):
         if not BaseGameTest.already_logged_on:
             email, password = signup_teacher_directly()
             create_organisation_directly(email)
-            self.go_to_homepage().go_to_teach_page().login(email, password)
+            klass, name, access_code = create_class_directly(email)
+            create_school_student_directly(access_code)
+            self.go_to_homepage().go_to_login_page().login(email, password)
             email = email
             BaseGameTest.user_profile = UserProfile.objects.get(user__email=email)
 
@@ -162,9 +215,6 @@ class BaseGameTest(SeleniumTestCase):
 
     def solution_file_path(self, filename):
         return os.path.join(BaseGameTest.BLOCKLY_SOLUTIONS_DIR, filename + ".xml")
-
-    def solution_filename_for_level(self, level):
-        return "level_" + str(level)
 
     def read_solution(self, filename):
         path = self.solution_file_path(filename)

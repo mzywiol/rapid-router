@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # Code for Life
 #
-# Copyright (C) 2015, Ocado Innovation Limited
+# Copyright (C) 2016, Ocado Innovation Limited
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
@@ -36,8 +36,9 @@
 # identified as the original program.
 from game import messages
 from game.messages import description_level_default, hint_level_default
+from game.theme import get_theme, get_themes_url
 from rest_framework import serializers
-from models import Workspace, Level, Episode, LevelDecor, LevelBlock, Block, Theme, Character, Decor
+from models import Workspace, Level, Episode, LevelDecor, LevelBlock, Block
 
 
 class WorkspaceSerializer(serializers.ModelSerializer):
@@ -108,6 +109,7 @@ class LevelDetailSerializer(serializers.HyperlinkedModelSerializer):
         serializer = LevelDecorSerializer(leveldecors, many=True, context={'request': self.context.get('request', None)})
         return serializer.data
 
+
 class LevelModeSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Level
@@ -127,6 +129,7 @@ class LevelMapListSerializer(serializers.HyperlinkedModelSerializer):
 
 class LevelMapDetailSerializer(serializers.HyperlinkedModelSerializer):
     leveldecor_set = serializers.SerializerMethodField()
+    theme = serializers.SerializerMethodField()
 
     class Meta:
         model = Level
@@ -136,6 +139,10 @@ class LevelMapDetailSerializer(serializers.HyperlinkedModelSerializer):
         leveldecors = LevelDecor.objects.filter(level__id=obj.id)
         serializer = LevelDecorSerializer(leveldecors, many=True, context={'request': self.context.get('request', None)})
         return serializer.data
+
+    def get_theme(self, obj):
+        pk = get_theme(obj.theme_name).pk
+        return get_themes_url(pk, self.context.get('request', None))
 
 
 class EpisodeListSerializer(serializers.HyperlinkedModelSerializer):
@@ -152,7 +159,7 @@ class EpisodeDetailSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Episode
         depth = 1
-        fields = ('url', '__unicode__', 'name', 'level_set', 'level_set_urls')
+        fields = ('url', '__unicode__', 'name', 'level_set', 'level_set_url')
 
     def get_level_set(self, obj):
         levels = Level.objects.filter(episode__id=obj.id)
@@ -174,18 +181,3 @@ class BlockSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Block
         fields = ('url', 'id', 'type')
-
-
-class ThemeSerializer(serializers.HyperlinkedModelSerializer):
-    class Meta:
-        model = Theme
-
-
-class CharacterSerializer(serializers.HyperlinkedModelSerializer):
-    class Meta:
-        model = Character
-
-
-class DecorSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Decor

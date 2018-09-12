@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # Code for Life
 #
-# Copyright (C) 2015, Ocado Innovation Limited
+# Copyright (C) 2016, Ocado Innovation Limited
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
@@ -39,7 +39,7 @@
     Decor data
 '''
 
-from game.models import Decor as OldDecor
+from rest_framework.reverse import reverse
 from game.theme import get_theme, get_all_themes
 
 
@@ -100,7 +100,7 @@ def get_decor_element(name, theme):
                 return DECOR_DATA[(name, theme_object.name)]
             except KeyError:
                 pass
-    raise OldDecor.DoesNotExist
+    raise KeyError
 
 
 def get_all_decor():
@@ -111,4 +111,8 @@ def get_decor_element_by_pk(pk):
     for decor in DECOR_DATA.values():
         if decor.pk == int(pk):
             return decor
-    raise OldDecor.DoesNotExist
+    raise KeyError
+
+
+def get_decors_url(pk, request):
+    return reverse('decor-detail', args={pk}, request=request)

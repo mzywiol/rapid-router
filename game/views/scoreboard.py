@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # Code for Life
 #
-# Copyright (C) 2015, Ocado Innovation Limited
+# Copyright (C) 2016, Ocado Innovation Limited
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
@@ -40,6 +40,7 @@ from datetime import timedelta
 from django.http import Http404
 from django.shortcuts import render
 from django.template import RequestContext
+from django.utils.translation import ugettext_lazy
 
 import game.messages as messages
 import game.permissions as permissions
@@ -48,13 +49,17 @@ from helper import renderError
 from game.forms import ScoreboardForm
 from game.models import Level, Attempt, sort_levels
 from portal.models import Class, Teacher, Student
+import level_selection
 
-Single_Level_Header = ['Class', 'Name', 'Score', 'Total Time', 'Start Time', 'Finish Time']
-Multiple_Levels_Header = ['Class', 'Name', 'Total Score', 'Total Time', 'Progress']
+Single_Level_Header = [ugettext_lazy('Class'), ugettext_lazy('Name'), ugettext_lazy('Score'),
+                       ugettext_lazy('Total Time'), ugettext_lazy('Start Time'), ugettext_lazy('Finish Time')]
+Progress_Header = ugettext_lazy('Progress')
+Multiple_Levels_Header = [ugettext_lazy('Class'), ugettext_lazy('Name'), ugettext_lazy('Total Score'),
+                          ugettext_lazy('Total Time'), Progress_Header]
 
 
 def scoreboard(request):
-    """ Renders a page with students' scores. A teacher can see the the visible classes in their
+    """ Renders a page with students' scores. A teacher can see the visible classes in their
         school. Student's view is restricted to their class if their teacher enabled the
         scoreboard for said class.
     """
@@ -114,10 +119,20 @@ def classes_for(user):
 
 
 def scoreboard_view(request, form, student_data, headers):
+    database_episodes = level_selection.fetch_episode_data_from_database(False)
+    context_episodes = {}
+    for episode in database_episodes:
+        context_episodes[episode['first_level']] = {
+            'name': episode['name'] + ' -- Levels ' + str(episode['first_level']) + ' - ' + str(episode['last_level']),
+            'first_level': str(episode['first_level']),
+            'last_level': str(episode['last_level']),
+            }
     context = RequestContext(request, {
         'form': form,
         'student_data': student_data,
         'headers': headers,
+        'progress_header': Progress_Header,
+        'episodes': context_episodes,
     })
     return render(request, 'game/scoreboard.html', context_instance=context)
 

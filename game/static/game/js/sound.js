@@ -1,7 +1,7 @@
 /*
 Code for Life
 
-Copyright (C) 2015, Ocado Innovation Limited
+Copyright (C) 2016, Ocado Innovation Limited
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as
@@ -150,14 +150,14 @@ ocargo.sound.tension = function() {
 };
 
 ocargo.sound.mute = function() {
-    this.playAudioBackup = Blockly.SOUNDS_;
-    Blockly.SOUNDS_ = {};
+    this.playAudioBackup = Blockly.mainWorkspace.SOUNDS_;
+    Blockly.mainWorkspace.SOUNDS_ = {};
 
     Howler.mute();
 };
 
 ocargo.sound.unmute = function() {
-    Blockly.SOUNDS_ = this.playAudioBackup || Blockly.SOUNDS_;
+    Blockly.mainWorkspace.SOUNDS_ = this.playAudioBackup || Blockly.mainWorkspace.SOUNDS_;
 
     Howler.unmute();
 };

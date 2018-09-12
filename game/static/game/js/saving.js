@@ -1,7 +1,7 @@
 /*
  Code for Life
 
- Copyright (C) 2015, Ocado Innovation Limited
+ Copyright (C) 2016, Ocado Innovation Limited
 
  This program is free software: you can redistribute it and/or modify
  it under the terms of the GNU Affero General Public License as
@@ -234,11 +234,25 @@ ocargo.Saving.prototype.retrieveLevel = function (id, callback) {
     });
 };
 
+ocargo.Saving.prototype.loadSolution = function (levelID, callback) {
+    $.ajax({
+        url: Urls.load_workspace_solution(levelID),
+        type: 'GET',
+        dataType: 'json',
+        success: function (json) {
+            callback(null, json);
+        },
+        error: function (xhr, errmsg, err) {
+            callback(xhr.status + ": " + errmsg + " " + err + " " + xhr.responseText);
+        }
+    });
+};
+
 ocargo.Saving.prototype.retrieveRandomLevel = function (data, callback) {
     csrftoken = $.cookie('csrftoken');
     $.ajax({
         url: Urls.generate_random_map_for_editor(),
-        type: "GET",
+        type: "POST",
         dataType: 'json',
         data: data,
         beforeSend: function (xhr, settings) {

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # Code for Life
 #
-# Copyright (C) 2015, Ocado Innovation Limited
+# Copyright (C) 2016, Ocado Innovation Limited
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
@@ -36,6 +36,7 @@
 # identified as the original program.
 from __future__ import division
 import json
+import re
 
 from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
@@ -51,12 +52,13 @@ import game.level_management as level_management
 import game.permissions as permissions
 from game import random_road
 from game.decor import get_all_decor, get_decor_element
-from game.models import Level, Block, Character
+from game.models import Level, Block
 from portal.models import Student, Class, Teacher
 from portal.templatetags import app_tags
 from game import app_settings
 from game.cache import cached_level_decor, cached_level_blocks
 from game.theme import get_all_themes
+from game.character import get_all_character
 
 
 def level_editor(request):
@@ -76,7 +78,7 @@ def level_editor(request):
     context = RequestContext(request, {
         'blocks': available_blocks(),
         'decor': get_all_decor(),
-        'characters': Character.objects.all(),
+        'characters': get_all_character(),
         'themes': get_all_themes(),
         'cow_level_enabled': app_settings.COW_FEATURE_ENABLED,
         'night_mode_feature_enabled': str(app_settings.NIGHT_MODE_FEATURE_ENABLED).lower(),
@@ -218,25 +220,33 @@ def load_level_for_editor(request, levelID):
 def save_level_for_editor(request, levelId=None):
     """ Processes a request on creation of the map in the level editor """
     data = json.loads(request.POST['data'])
-
     if levelId is not None:
         level = get_object_or_404(Level, id=levelId)
     else:
         level = Level(default=False, anonymous=data['anonymous'])
-
         if permissions.can_create_level(request.user):
             level.owner = request.user.userprofile
-
     if not permissions.can_save_level(request.user, level):
         return HttpResponseUnauthorized()
-    level_management.save_level(level, data)
-    # Add the teacher automatically if it is a new level and the student is not independent
-    if ((levelId is None) and hasattr(level.owner, 'student') and
-            not level.owner.student.is_independent()):
-        level.shared_with.add(level.owner.student.class_field.teacher.user.user)
-        level.save()
-    response = {'id': level.id}
-    return HttpResponse(json.dumps(response), content_type='application/javascript')
+
+    pattern = re.compile("^(\w?[ ]?)*$")
+    if pattern.match(data['name']):
+        level_management.save_level(level, data)
+        # Add the teacher automatically if it is a new level and the student is not independent
+        if ((levelId is None) and hasattr(level.owner, 'student') and
+                not level.owner.student.is_independent()):
+            level.shared_with.add(level.owner.student.class_field.teacher.user.user)
+            level.save()
+            level_management.email_new_custom_level(level.owner.student.class_field.teacher.new_user.email,
+                                                    request.build_absolute_uri(reverse('level_moderation')),
+                                                    request.build_absolute_uri(reverse('play_custom_level',
+                                                                                       kwargs={'levelId': level.id})),
+                                                    request.build_absolute_uri(reverse('home')),
+                                                    str(level.owner.student), level.owner.student.class_field.name)
+        response = {'id': level.id}
+        return HttpResponse(json.dumps(response), content_type='application/javascript')
+    else:
+        return HttpResponseUnauthorized()
 
 
 @transaction.atomic
@@ -253,17 +263,17 @@ def delete_level_for_editor(request, levelId):
 
 def generate_random_map_for_editor(request):
     """Generates a new random path suitable for a random level with the parameters provided"""
+    data = dict(request.POST)
 
-    size = int(request.GET['numberOfTiles'])
-    branchiness = float(request.GET['branchiness'])
-    loopiness = float(request.GET['loopiness'])
-    curviness = float(request.GET['curviness'])
-    traffic_lights = request.GET.get('trafficLights', 'false') == 'true'
-    scenery = request.GET.get('scenery', 'false') == 'true'
-    cows = request.GET.get('cows', 'false') == 'true'
+    size = int(data['numberOfTiles'][0])
+    branchiness = float(data['branchiness'][0])
+    loopiness = float(data['loopiness'][0])
+    curviness = float(data['curviness'][0])
+    traffic_lights = data['trafficLights'][0] == 'true'
+    scenery = data['scenery'][0] == 'true'
 
     data = random_road.generate_random_map_data(size, branchiness, loopiness, curviness,
-                                                traffic_lights, scenery, cows)
+                                                traffic_lights, scenery, False)
 
     return HttpResponse(json.dumps(data), content_type='application/javascript')
 
@@ -313,13 +323,15 @@ def get_sharing_information_for_editor(request, levelID):
                         'shared': level.shared_with.filter(id=student.user.user.id).exists()}
                         for student in students]})
 
-            # Then add all the teachers at the same organisation
-            fellow_teachers = Teacher.objects.filter(school=teacher.school)
-            valid_recipients['teachers'] = [{
-                'id': fellow_teacher.user.user.id,
-                'name': app_tags.make_into_username(fellow_teacher.user.user),
-                'shared': level.shared_with.filter(id=fellow_teacher.user.user.id).exists()}
-                for fellow_teacher in fellow_teachers if teacher != fellow_teacher]
+            if not teacher.school:
+                valid_recipients['teachers'] = []
+            else:
+                fellow_teachers = Teacher.objects.filter(school=teacher.school)
+                valid_recipients['teachers'] = [{
+                    'id': fellow_teacher.user.user.id,
+                    'name': app_tags.make_into_username(fellow_teacher.user.user),
+                    'shared': level.shared_with.filter(id=fellow_teacher.user.user.id).exists()}
+                    for fellow_teacher in fellow_teachers if teacher != fellow_teacher]
 
     return HttpResponse(json.dumps(valid_recipients), content_type='application/javascript')
 

@@ -1,7 +1,7 @@
 /*
 Code for Life
 
-Copyright (C) 2015, Ocado Innovation Limited
+Copyright (C) 2016, Ocado Innovation Limited
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as
@@ -93,7 +93,7 @@ ocargo.Thread.prototype.step = function(model) {
             type: 'popup',
             popupType: 'FAIL',
             failSubtype: 'QUERY_INFINITE_LOOP',
-            popupMessage: ocargo.messages.queryInfiniteLoop,
+            popupMessage: gettext('It looks as though your program\'s been running a while. Check your repeat loops are okay.'),
             popupHint: ocargo.game.registerFailure(),
             description: 'failure popup'
         });

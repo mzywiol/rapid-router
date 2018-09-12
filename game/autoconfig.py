@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # Code for Life
 #
-# Copyright (C) 2015, Ocado Innovation Limited
+# Copyright (C) 2016, Ocado Innovation Limited
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
@@ -49,7 +49,7 @@ SETTINGS = {
     'PIPELINE_CSS': {
         'game-scss': {
             'source_filenames': (
-              'game.scss',
+              'game/sass/game.scss',
             ),
             'output_filename': 'game.css',
         },
@@ -71,6 +71,15 @@ SETTINGS = {
         'foundation_icons',
         'bourbon',
         'rest_framework',
+    ],
+    'LANGUAGES': [
+        ('lol-us', 'Localisation'),
+    ],
+    'LOCALE_PATHS': [
+        # This shouldn't be needed, but it looks like there's an issue with
+        # using a language code that's not in `django/conf/locale` - the
+        # check_for_language function doesn't recognise it.
+        os.path.join(os.path.dirname(__file__), 'locale'),
     ],
     'PIPELINE_SASS_ARGUMENTS': '--quiet',
     'STATICFILES_FINDERS': [

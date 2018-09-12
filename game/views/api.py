@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # Code for Life
 #
-# Copyright (C) 2015, Ocado Innovation Limited
+# Copyright (C) 2016, Ocado Innovation Limited
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as
@@ -34,20 +34,19 @@
 # copyright notice and these terms. You must not misrepresent the origins of this
 # program; modified versions of the program must be marked as such and not
 # identified as the original program.
-from django.core.exceptions import ObjectDoesNotExist
 from django.http import HttpResponse
-from game.models import Level, Episode, LevelBlock, Block, Theme, Character, LevelDecor
+from game.models import Level, Episode, LevelBlock, Block, LevelDecor
 from game.serializers import LevelListSerializer, EpisodeListSerializer, LevelDetailSerializer, EpisodeDetailSerializer, \
-    LevelBlockSerializer, BlockSerializer, ThemeSerializer, CharacterSerializer, DecorSerializer, LevelMapDetailSerializer, \
+    LevelBlockSerializer, BlockSerializer, LevelMapDetailSerializer, \
     LevelDecorSerializer, LevelModeSerializer, LevelMapListSerializer
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
 from rest_framework import viewsets
-from rest_framework import generics
 
-from game.decor import get_all_decor, get_decor_element_by_pk
-from game.theme import get_all_themes, get_theme_by_pk
+from game.decor import get_all_decor, get_decor_element_by_pk, get_decors_url
+from game.theme import get_all_themes, get_theme_by_pk, get_themes_url
+from game.character import get_all_character, get_character_by_pk, get_characters_url
 
 
 @api_view(('GET',))
@@ -66,19 +65,19 @@ def api_root(request, format=None):
 @api_view(('GET',))
 def decor_list(request, format=None):
     decors = get_all_decor()
-    serializer = DecorSerializer(decors, many=True, context={'request': request})
-    return Response(serializer.data)
+    data = [{get_decors_url(i.pk, request)} for i in decors]
+    return Response(data)
 
 
 @api_view(('GET',))
 def decor_detail(request, pk, format=None):
     try:
         decor = get_decor_element_by_pk(pk=pk)
-    except ObjectDoesNotExist:
+    except KeyError:
         return HttpResponse(status=404)
-
-    serializer = DecorSerializer(decor, context={'request': request})
-    return Response(serializer.data)
+    data = decor.__dict__.copy()
+    data['theme'] = get_themes_url(data['theme'].pk, request)
+    return Response(data)
 
 
 @api_view(('GET',))
@@ -227,37 +226,33 @@ def block_detail(request, pk, format=None):
 @api_view(('GET',))
 def theme_list(request, format=None):
     themes = get_all_themes()
-    serializer = ThemeSerializer(themes, many=True, context={'request': request})
-    return Response(serializer.data)
+    data = [{get_themes_url(i.pk, request)} for i in themes]
+    return Response(data)
 
 
 @api_view(('GET',))
 def theme_detail(request, pk, format=None):
     try:
         theme = get_theme_by_pk(pk)
-    except Theme.DoesNotExist:
+    except KeyError:
         return HttpResponse(status=404)
-
-    serializer = ThemeSerializer(theme, context={'request': request})
-    return Response(serializer.data)
+    return Response(theme.__dict__)
 
 
 @api_view(('GET',))
 def character_list(request, format=None):
-    characters = Character.objects.all()
-    serializer = CharacterSerializer(characters, many=True, context={'request': request})
-    return Response(serializer.data)
+    characters = get_all_character()
+    data = [{get_characters_url(i.pk, request)} for i in characters]
+    return Response(data)
 
 
 @api_view(('GET',))
 def character_detail(request, pk, format=None):
     try:
-        character = Character.objects.get(pk=pk)
-    except Character.DoesNotExist:
+        character = get_character_by_pk(pk)
+    except KeyError:
         return HttpResponse(status=404)
-
-    serializer = CharacterSerializer(character, context={'request': request})
-    return Response(serializer.data)
+    return Response(character.__dict__)
 
 
 # Maybe used later for when we use a viewset which requires multiple serializer
